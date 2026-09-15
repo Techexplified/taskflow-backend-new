@@ -1,25 +1,20 @@
 // src/models/users.ts
-//
-// Mirrors Cardlytics' models/users.ts, minus the billing/plan fields —
-// this project only needs identity, not subscription state (yet).
-//
-// NOTE: unlike Cardlytics' getDb() (async, lazy-connect), this project's
-// getDb() is synchronous — connectToDatabase() already ran at startup
-// in local.ts, so there's no `await` here.
-
 import { Collection, ObjectId } from "mongodb";
 import { getDb } from "../config/db";
 
 export interface UserDocument {
   id?: ObjectId;
-  atlassianId: string; // stable Trello member ID
+  atlassianId: string;
   email?: string;
   displayName?: string;
+  plan: "free" | "pro";
+  plan_expires_at?: Date; // set later, once/if a payment provider exists
+  trial_started_at?: Date;
+  trial_ends_at?: Date;
   created_at: Date;
   updated_at: Date;
 }
 
-// Collection accessor
 export function getUsersCollection(): Collection<UserDocument> {
   const db = getDb();
   return db.collection<UserDocument>("users");

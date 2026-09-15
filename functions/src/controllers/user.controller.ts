@@ -4,8 +4,8 @@ import { UserService } from "../services/UserService";
 
 export class UserController {
   // GET /api/users/me
-  // Protected by authMiddleware (mounted in app.ts) — req.user is
-  // guaranteed to exist by the time this handler runs.
+  // Creates the user + starts their trial on first call, then returns
+  // identity + current plan/trial status every time.
   static async getMe(req: Request, res: Response): Promise<void> {
     try {
       const { atlassianId, email, displayName } = req.user!;
@@ -14,12 +14,18 @@ export class UserController {
         email,
         displayName,
       );
+      const planStatus = await UserService.getPlanStatus(atlassianId);
 
       res.status(200).json({
         atlassianId: user.atlassianId,
         email: user.email,
         displayName: user.displayName,
         created_at: user.created_at,
+        plan: planStatus.plan,
+        isPro: planStatus.isPro,
+        isTrialActive: planStatus.isTrialActive,
+        isActive: planStatus.isActive,
+        trialEndsAt: planStatus.trialEndsAt,
       });
     } catch (err) {
       console.error("UserController.getMe failed", err);
