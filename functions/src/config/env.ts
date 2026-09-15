@@ -12,6 +12,8 @@ const schema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+  TRELLO_API_KEY: z.string().min(1),
+  ALLOWED_ORIGINS: z.string().default("https://trello.com"), // ← new
 });
 
 const parsed = schema.safeParse(process.env);
