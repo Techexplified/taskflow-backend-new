@@ -1,7 +1,6 @@
 {
   "name": "functions",
   "scripts": {
-    "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "dev": "nodemon --exec \"ts-node --files\" src/local.ts",
     "build:watch": "tsc --watch",

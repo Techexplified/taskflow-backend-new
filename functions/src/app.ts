@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { getDb } from "./config/db";
 import { env } from "./config/env";
 import { authMiddleware } from "./middleware/auth";
 import userRouter from "./routes/user";
@@ -29,15 +28,6 @@ app.use(
 );
 
 app.use(express.json());
-
-app.get("/health", async (req, res) => {
-  try {
-    await getDb().command({ ping: 1 });
-    res.json({ status: "ok", db: "connected" });
-  } catch (err) {
-    res.status(503).json({ status: "error", db: "disconnected" });
-  }
-});
 
 // General API rate limiter — generous since this isn't a payment endpoint,
 // just guards against runaway/misbehaving clients.
