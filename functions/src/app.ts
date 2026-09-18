@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import { env } from "./config/env";
 import { authMiddleware } from "./middleware/auth";
 import userRouter from "./routes/user";
+import checkoutRouter from "./routes/checkout";
 
 const app = express();
 
@@ -38,6 +39,14 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const checkoutLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use("/api/users", apiLimiter, authMiddleware, userRouter);
+app.use("/api/checkout", checkoutLimiter, authMiddleware, checkoutRouter);
 
 export default app;

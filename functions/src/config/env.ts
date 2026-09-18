@@ -13,7 +13,13 @@ const schema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   TRELLO_API_KEY: z.string().min(1),
-  ALLOWED_ORIGINS: z.string().default("https://trello.com"), // ← new
+  ALLOWED_ORIGINS: z.string().default("https://trello.com"),
+  DODO_API_KEY: z.string().min(1), // ← new
+  DODO_TASKFLOW_PRODUCT_ID: z.string().min(1), // ← new
+  DODO_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"), // ← new
+  CHECKOUT_RETURN_URL: z
+    .string()
+    .default("https://gantt-view-trello-power-up.vercel.app"), // ← new
 });
 
 const parsed = schema.safeParse(process.env);
