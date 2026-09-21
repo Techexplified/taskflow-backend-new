@@ -19,7 +19,8 @@ const schema = z.object({
   DODO_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"), // ← new
   CHECKOUT_RETURN_URL: z
     .string()
-    .default("https://gantt-view-trello-power-up.vercel.app"), // ← new
+    .default("https://gantt-view-trello-power-up.vercel.app"),
+  CHECKOUT_WRAPPER_URL: z.string().default("https://explified.com/checkout"),
 });
 
 const parsed = schema.safeParse(process.env);

@@ -18,21 +18,27 @@ export class DodoProvider {
   }
 
   // Called when a user clicks "Upgrade to Pro"
+  // Called when a user clicks "Upgrade to Pro"
   async createCheckout(atlassianId: string): Promise<CheckoutSession> {
     const session = await this.client.checkoutSessions.create({
       product_cart: [{ product_id: env.DODO_TASKFLOW_PRODUCT_ID, quantity: 1 }],
-      // Travels through to the webhook payload later, so we can link
-      // the payment back to this user once that step is built.
       metadata: { atlassianId },
       return_url: env.CHECKOUT_RETURN_URL,
     });
 
-    if (!session.checkout_url) {
+    const dodoCheckoutUrl = session.checkout_url ?? "";
+    if (!dodoCheckoutUrl) {
       throw new Error("Dodo did not return a checkout_url");
     }
 
+    // Wrap Dodo's raw checkout URL behind our own domain — the address
+    // bar shows the branded "Opening checkout…" page first, which then
+    // forwards the user into Dodo's actual hosted checkout. Same pattern
+    // as Cardlytics.
+    const wrappedUrl = `${env.CHECKOUT_WRAPPER_URL}?session=${encodeURIComponent(dodoCheckoutUrl)}`;
+
     return {
-      url: session.checkout_url,
+      url: wrappedUrl,
       sessionId: session.session_id ?? "",
     };
   }
