@@ -132,4 +132,65 @@ export class UserService {
   static clearPlanCache(atlassianId: string): void {
     planCache.delete(atlassianId);
   }
+
+  // Called from webhook on first successful payment / renewal
+  static async activatePro(
+    atlassianId: string,
+    expiresAt: Date,
+    dodoSubscriptionId: string,
+    dodoCustomerId?: string,
+  ): Promise<void> {
+    const col = getUsersCollection();
+    const setFields: Record<string, unknown> = {
+      plan: "pro",
+      plan_expires_at: expiresAt,
+      dodo_subscription_id: dodoSubscriptionId,
+      cancel_at_period_end: false,
+      updated_at: new Date(),
+    };
+    if (dodoCustomerId) setFields.dodo_customer_id = dodoCustomerId;
+
+    await col.updateOne({ atlassianId }, { $set: setFields });
+    UserService.clearPlanCache(atlassianId);
+    console.log(
+      `User upgraded to Pro — atlassianId=${atlassianId}, expiresAt=${expiresAt}`,
+    );
+  }
+
+  // Called on subscription.updated — does NOT touch `plan`. Just flags
+  // whether a cancellation is scheduled (access continues until period end).
+  static async updateCancellationStatus(
+    atlassianId: string,
+    cancelAtPeriodEnd: boolean,
+    nextBillingDate?: Date,
+  ): Promise<void> {
+    const col = getUsersCollection();
+    const setFields: Record<string, unknown> = {
+      cancel_at_period_end: cancelAtPeriodEnd,
+      updated_at: new Date(),
+    };
+    if (nextBillingDate) setFields.plan_expires_at = nextBillingDate;
+
+    await col.updateOne({ atlassianId }, { $set: setFields });
+    UserService.clearPlanCache(atlassianId);
+  }
+
+  // Called on the TERMINAL cancellation event — paid period has actually
+  // ended, revoke access now.
+  static async deactivatePro(atlassianId: string): Promise<void> {
+    const col = getUsersCollection();
+    await col.updateOne(
+      { atlassianId },
+      {
+        $set: {
+          plan: "free",
+          cancel_at_period_end: false,
+          updated_at: new Date(),
+        },
+        $unset: { plan_expires_at: "" },
+      },
+    );
+    UserService.clearPlanCache(atlassianId);
+    console.log(`Pro plan deactivated — atlassianId=${atlassianId}`);
+  }
 }

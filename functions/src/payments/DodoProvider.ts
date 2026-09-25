@@ -1,5 +1,5 @@
-// src/payments/DodoProvider.ts
 import DodoPayments from "dodopayments";
+import { Webhook } from "standardwebhooks";
 import { env } from "../config/env";
 
 export interface CheckoutSession {
@@ -9,6 +9,7 @@ export interface CheckoutSession {
 
 export class DodoProvider {
   private client: DodoPayments;
+  private webhookVerifier: Webhook | null = null;
 
   constructor() {
     this.client = new DodoPayments({
@@ -17,8 +18,6 @@ export class DodoProvider {
     });
   }
 
-  // Called when a user clicks "Upgrade to Pro"
-  // Called when a user clicks "Upgrade to Pro"
   async createCheckout(atlassianId: string): Promise<CheckoutSession> {
     const session = await this.client.checkoutSessions.create({
       product_cart: [{ product_id: env.DODO_TASKFLOW_PRODUCT_ID, quantity: 1 }],
@@ -42,9 +41,25 @@ export class DodoProvider {
       sessionId: session.session_id ?? "",
     };
   }
+
+  verifyWebhook(rawBody: string, signatureHeadersJson: string): boolean {
+    try {
+      if (!this.webhookVerifier) {
+        this.webhookVerifier = new Webhook(env.DODO_WEBHOOK_SECRET);
+      }
+      const headers = JSON.parse(signatureHeadersJson);
+      this.webhookVerifier.verify(rawBody, headers);
+      return true;
+    } catch (err) {
+      console.error(
+        "Dodo webhook verification failed:",
+        (err as Error).message,
+      );
+      return false;
+    }
+  }
 }
 
-// Singleton — avoids constructing a new Dodo client on every request
 let cached: DodoProvider | null = null;
 export function getDodoProvider(): DodoProvider {
   if (!cached) cached = new DodoProvider();

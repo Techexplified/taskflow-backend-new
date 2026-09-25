@@ -5,6 +5,7 @@ import { env } from "./config/env";
 import { authMiddleware } from "./middleware/auth";
 import userRouter from "./routes/user";
 import checkoutRouter from "./routes/checkout";
+import webhookRouter from "./routes/webhook";
 
 const app = express();
 
@@ -46,6 +47,22 @@ const checkoutLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+app.use(
+  express.json({
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60, // generous — Dodo can legitimately burst retries
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/webhooks", webhookLimiter, webhookRouter); // ← new, public, no authMiddleware
 app.use("/api/users", apiLimiter, authMiddleware, userRouter);
 app.use("/api/checkout", checkoutLimiter, authMiddleware, checkoutRouter);
 

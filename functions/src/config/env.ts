@@ -15,6 +15,7 @@ const schema = z.object({
   TRELLO_API_KEY: z.string().min(1),
   ALLOWED_ORIGINS: z.string().default("https://trello.com"),
   DODO_API_KEY: z.string().min(1), // ← new
+  DODO_WEBHOOK_SECRET: z.string().min(1), // ← new
   DODO_TASKFLOW_PRODUCT_ID: z.string().min(1), // ← new
   DODO_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"), // ← new
   CHECKOUT_RETURN_URL: z

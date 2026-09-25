@@ -8,7 +8,10 @@ export interface UserDocument {
   email?: string;
   displayName?: string;
   plan: "free" | "pro";
-  plan_expires_at?: Date; // set later, once/if a payment provider exists
+  plan_expires_at?: Date;
+  dodo_subscription_id?: string; // ← new
+  dodo_customer_id?: string; // ← new
+  cancel_at_period_end?: boolean; // ← new
   trial_started_at?: Date;
   trial_ends_at?: Date;
   created_at: Date;
