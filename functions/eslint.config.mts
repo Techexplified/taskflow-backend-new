@@ -4,7 +4,18 @@ import tseslint from "typescript-eslint";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
-  { files: ["**/*.{js,mjs,cjs,ts,mts,cts}"], plugins: { js }, extends: ["js/recommended"], languageOptions: { globals: globals.browser } },
-  { files: ["**/*.js"], languageOptions: { sourceType: "script" } },
+  { ignores: ["lib/**", "node_modules/**"] },
+  {
+    files: ["**/*.ts"],
+    plugins: { js },
+    extends: ["js/recommended"],
+    languageOptions: { globals: globals.node }, // this is a Node backend, not browser code
+  },
   tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-namespace": "off",
+    },
+  },
 ]);

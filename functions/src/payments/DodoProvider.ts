@@ -1,6 +1,6 @@
 import DodoPayments from "dodopayments";
 import { Webhook } from "standardwebhooks";
-import { env } from "../config/env";
+import { env, TASKFLOW_PRODUCT_IDS } from "../config/env";
 
 export interface CheckoutSession {
   url: string;
@@ -9,19 +9,24 @@ export interface CheckoutSession {
 
 export class DodoProvider {
   private client: DodoPayments;
-  private webhookVerifier: Webhook | null = null;
+  private webhookVerifier: Webhook;
 
   constructor() {
     this.client = new DodoPayments({
       bearerToken: env.DODO_API_KEY,
       environment: env.DODO_ENVIRONMENT,
     });
+    this.webhookVerifier = new Webhook(env.DODO_WEBHOOK_SECRET);
   }
 
-  async createCheckout(atlassianId: string): Promise<CheckoutSession> {
+  async createCheckout(
+    atlassianId: string,
+    email?: string,
+  ): Promise<CheckoutSession> {
     const session = await this.client.checkoutSessions.create({
-      product_cart: [{ product_id: env.DODO_TASKFLOW_PRODUCT_ID, quantity: 1 }],
+      product_cart: [{ product_id: TASKFLOW_PRODUCT_IDS[0], quantity: 1 }],
       metadata: { atlassianId },
+      ...(email ? { customer: { email } } : {}),
       return_url: env.CHECKOUT_RETURN_URL,
     });
 
@@ -30,31 +35,28 @@ export class DodoProvider {
       throw new Error("Dodo did not return a checkout_url");
     }
 
-    // Wrap Dodo's raw checkout URL behind our own domain — the address
-    // bar shows the branded "Opening checkout…" page first, which then
-    // forwards the user into Dodo's actual hosted checkout. Same pattern
-    // as Cardlytics.
+    // Wrapped behind our branded page. IMPORTANT: that page must only
+    // redirect to Dodo's checkout host(s) — see review notes (open redirect).
     const wrappedUrl = `${env.CHECKOUT_WRAPPER_URL}?session=${encodeURIComponent(dodoCheckoutUrl)}`;
 
-    return {
-      url: wrappedUrl,
-      sessionId: session.session_id ?? "",
-    };
+    return { url: wrappedUrl, sessionId: session.session_id ?? "" };
   }
 
-  verifyWebhook(rawBody: string, signatureHeadersJson: string): boolean {
+  async createPortalSession(customerId: string): Promise<string> {
+    const session = await this.client.customers.customerPortal.create(
+      customerId,
+      { return_url: env.CHECKOUT_RETURN_URL },
+    );
+    if (!session?.link) throw new Error("Dodo did not return a portal link");
+    return session.link;
+  }
+
+  verifyWebhook(rawBody: string, headers: Record<string, string>): boolean {
     try {
-      if (!this.webhookVerifier) {
-        this.webhookVerifier = new Webhook(env.DODO_WEBHOOK_SECRET);
-      }
-      const headers = JSON.parse(signatureHeadersJson);
       this.webhookVerifier.verify(rawBody, headers);
       return true;
     } catch (err) {
-      console.error(
-        "Dodo webhook verification failed:",
-        (err as Error).message,
-      );
+      console.error("Dodo webhook verification failed:", (err as Error).message);
       return false;
     }
   }

@@ -1,6 +1,6 @@
 // src/controllers/user.controller.ts
 import { Request, Response } from "express";
-import { UserService } from "../services/UserService";
+import { UserService, computePlanStatus } from "../services/UserService";
 
 export class UserController {
   // GET /api/users/me
@@ -9,12 +9,9 @@ export class UserController {
   static async getMe(req: Request, res: Response): Promise<void> {
     try {
       const { atlassianId, email, displayName } = req.user!;
-      const user = await UserService.findOrCreate(
-        atlassianId,
-        email,
-        displayName,
-      );
-      const planStatus = await UserService.getPlanStatus(atlassianId);
+      const user = await UserService.findOrCreate(atlassianId, email, displayName);
+      // We already have the fresh document — no second DB read / cache needed.
+      const planStatus = computePlanStatus(user);
 
       res.status(200).json({
         atlassianId: user.atlassianId,
@@ -26,6 +23,8 @@ export class UserController {
         isTrialActive: planStatus.isTrialActive,
         isActive: planStatus.isActive,
         trialEndsAt: planStatus.trialEndsAt,
+        expiresAt: planStatus.expiresAt,
+        cancelAtPeriodEnd: planStatus.cancelAtPeriodEnd,
       });
     } catch (err) {
       console.error("UserController.getMe failed", err);
